@@ -1,1 +1,5 @@
-gcc -o ByteSize --std=c99 -Wall -Werror main.c lexer.c parser.c
+#!/bin/sh
+
+SOURCES="main.c lexer.c parser.c interp.c"
+gcc -o ByteSize --std=c99 -Wall -Werror $SOURCES
+

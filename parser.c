@@ -168,5 +168,6 @@ void PrintList(Term* list) {
 
 void PrintProgram(Term* program) {
   PrintList(program);
+  printf("\n");
 }
 

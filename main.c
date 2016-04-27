@@ -17,5 +17,6 @@ int main(int argc, char** argv) {
   int tokenCount = Lex(code, &tokens);
   Term* program = Parse(code, tokens, tokenCount);
   PrintProgram(program);
+  Interpret(program);
 }
 

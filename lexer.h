@@ -20,6 +20,5 @@ typedef struct {
 
 const char* LoadFile(const char*);
 int Lex(const char*, Token** tokens);
-void* Alloc(size_t size);
-void* Realloc(void* ptr, size_t size);
+
 

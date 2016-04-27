@@ -32,6 +32,7 @@ typedef enum {
 #define TYPE_IS_ATOM(TYPE) ((TYPE) != T_LIST)
 #define TYPE_IS_LIST(TYPE) ((TYPE) == T_LIST)
 #define TYPE_IS_STRING(TYPE) ((TYPE) == T_STRING)
+#define TYPE_IS_SYMBOL(TYPE) ((TYPE) == T_SYMBOL)
 #define TYPE_IS_NUMBER(TYPE) ((TYPE) & TYPE_CATEGORY_NUMBER)
 #define TYPE_IS_PRIM(TYPE) ((TYPE) & TYPE_CATEGORY_PRIM)
 #define TYPE_IS_NIL(TYPE) ((TYPE) == T_PRIM_NIL)
@@ -42,6 +43,7 @@ typedef enum {
 #define IS_ATOM(TERM) (TYPE_IS_ATOM((TERM)->type))
 #define IS_LIST(TERM) (TYPE_IS_LIST((TERM)->type))
 #define IS_STRING(TERM) (TYPE_IS_STRING((TERM)->type))
+#define IS_SYMBOL(TERM) (TYPE_IS_SYMBOL((TERM)->type))
 #define IS_NUMBER(TERM) (TYPE_IS_NUMBER((TERM)->type))
 #define IS_PRIM(TERM) (TYPE_IS_PRIM((TERM)->type))
 #define IS_NIL(TERM) (!(TERM))
@@ -90,8 +92,9 @@ typedef struct Term {
       struct Term* (*funPtr)(struct Term*);
     } bif;
     struct {
-      struct Term* funBody;
-      struct Env* funEnv;
+      struct Term* funBody; /* Function code (a list). */
+      struct Term* funArgs; /* List of symbols (arg names). */
+      struct Env* funEnv;   /* Closure environment. */
     } udf;
   } value;
 } Term;
@@ -102,4 +105,10 @@ typedef struct Env {
   int nameLen;
   Term* value;
 } Env;
+
+Term* NewList(Term* head, Term* tail);
+void* Alloc(size_t size);
+void* Realloc(void* ptr, size_t size);
+
+Term* Interpret(Term* iTerm);
 
