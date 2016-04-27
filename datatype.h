@@ -21,6 +21,7 @@ typedef enum {
   /* These arise at evaluation time. */
   T_PRIM_NIL    = 0x1001, /* NOTE: Nil is a null pointer but it has a type. */
   T_PRIM_FUN    = 0x1002,
+  T_PRIM_QUOTE  = 0x1003,
   T_FUN_NATIVE  = 0x2001,
   T_FUN_USER    = 0x2002,
 } DataType;
@@ -109,6 +110,7 @@ typedef struct Env {
   Term* value;
 } Env;
 
+Term* NewAtom(DataType type);
 Term* NewList(Term* head, Term* tail);
 void* Alloc(size_t size);
 void* Realloc(void* ptr, size_t size);
@@ -117,9 +119,9 @@ Term* Interpret(Term* iTerm);
 Env* BuiltinEnvironment();
 Env* EnvBind(Env* env, Term* argNameSymbol, Term* value);
 
-void die(const char* message, ...)
+void Die(const char* message, ...)
   __attribute__((noreturn));
-void dieShowingTerm(const char* message, Term* term, ...)
+void DieShowingTerm(const char* message, Term* term, ...)
   __attribute__((noreturn));
 
 void PrintTerm(FILE* f, Term* atom);

@@ -160,6 +160,7 @@ void PrintTerm(FILE* f, Term* atom) {
     case T_NUMBER:      fprintf(f, "%d", atom->value.number.n); break;
     case T_PRIM_NIL:    fprintf(f, "nil"); break;
     case T_PRIM_FUN:    fprintf(f, "fun"); break;
+    case T_PRIM_QUOTE:  fprintf(f, "quote");
     case T_FUN_NATIVE:
     case T_FUN_USER:    fprintf(f, "<function>"); break;
   }

@@ -22,7 +22,7 @@ static Term* InterpretSymbol(Term* iTerm, Env* env);
 
 
 
-void die(const char* message, ...) {
+void Die(const char* message, ...) {
   va_list args;
   va_start(args, message);
   vfprintf(stderr, message, args);
@@ -31,7 +31,7 @@ void die(const char* message, ...) {
   exit(1);
 }
 
-void dieShowingTerm(const char* message, Term* term, ...) {
+void DieShowingTerm(const char* message, Term* term, ...) {
   va_list args;
   va_start(args, term);
   vfprintf(stderr, message, args);
@@ -74,13 +74,14 @@ static Term* InterpretTerm(Term* iTerm, Env* env) {
     case T_SYMBOL:
       return InterpretSymbol(iTerm, env);
     case T_PRIM_FUN:
+    case T_PRIM_QUOTE:
     case T_FUN_NATIVE:
     case T_FUN_USER:
       ; /* The parser doesn't generate these. */
     case T_PRIM_NIL:
       ; /* Already handled by the null check above. */
   }
-  die("Unexpected term type in InterpretTerm.");
+  Die("Unexpected term type in InterpretTerm.");
 }
 
 static Term* InterpretList(Term* iList, Env* env) {
@@ -115,14 +116,14 @@ static Term* InterpretUdfCall(Term* eFun, Term* iArgList, Env* env) {
   Term* funArgNames = eFun->value.udf.funArgs;
   while (funArgNames) {
     if (eArgList == NULL) {
-      die("Too few arguments to function.");
+      Die("Too few arguments to function.");
     }
     callEnv = EnvBind(env, HEAD(funArgNames), HEAD(eArgList));
     eArgList = TAIL(eArgList);
     funArgNames = TAIL(funArgNames);
   }
   if (eArgList != NULL) {
-    die("Too many arguments to function.");
+    Die("Too many arguments to function.");
   }
   /* Invoke the function body. */
   return InterpretTerm(eFun->value.udf.funBody, callEnv);
@@ -131,7 +132,7 @@ static Term* InterpretUdfCall(Term* eFun, Term* iArgList, Env* env) {
 static void ValidateFunArgDecls(Term* funArgDecls) {
   while (funArgDecls) {
     if (!IS_SYMBOL(HEAD(funArgDecls))) {
-      die("Function argument declarations must be symbols.");
+      Die("Function argument declarations must be symbols.");
     }
     funArgDecls = TAIL(funArgDecls);
   }
@@ -139,21 +140,21 @@ static void ValidateFunArgDecls(Term* funArgDecls) {
 
 static Term* InterpretFunctionDef(Term* iFunDef, Env* env) {
   if (!iFunDef) {
-    die("Empty function definition.");
+    Die("Empty function definition.");
   }
   //Term* funName = HEAD(iFunDef); // FIXME: Save name.
   //if (!IS_SYMBOL(funName)) {
-  //  die("Function name must be a symbol.");
+  //  Die("Function name must be a symbol.");
   //}
   Term* funArgsAndBody = TAIL(iFunDef);
   if (!funArgsAndBody) {
-    die("Function arguments and body missing.");
+    Die("Function arguments and body missing.");
   }
   Term* funArgDecls = HEAD(funArgsAndBody);
   ValidateFunArgDecls(funArgDecls);
   Term* funBody = TAIL(funArgsAndBody);
   if (!funBody) {
-    die("Function body missing.");
+    Die("Function body missing.");
   }
   Term* eFunDef = (Term*)Alloc(sizeof(Term));
   eFunDef->type = T_FUN_USER;
@@ -169,6 +170,9 @@ static Term* InterpretForm(Term* iTerm, Env* env) {
      the interpretation of the rest of the form. */
   Term* eHead = InterpretTerm(HEAD(iTerm), env);
   switch (eHead->type) {
+    case T_PRIM_QUOTE:
+      /* TODO: Support unquote. */
+      return TAIL(iTerm);
     case T_FUN_NATIVE:
       return InterpretBifCall(eHead, TAIL(iTerm), env);
       break;
@@ -179,7 +183,7 @@ static Term* InterpretForm(Term* iTerm, Env* env) {
       return InterpretFunctionDef(TAIL(iTerm), env);
       break;
     default:
-      dieShowingTerm("Invalid form", iTerm);
+      DieShowingTerm("Invalid form", iTerm);
   }
 }
 
@@ -203,7 +207,7 @@ static Term* InterpretSymbol(Term* iTerm, Env* env) {
     }
     envNode = envNode->next;
   }
-  dieShowingTerm("Unresolved symbol", iTerm);
+  DieShowingTerm("Unresolved symbol", iTerm);
 }
 
 Term* Interpret(Term* iTerm) {

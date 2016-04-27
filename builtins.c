@@ -8,16 +8,14 @@
 
 /* Generate a built-in symbol. */
 static Term* BISymbol(const char* name) {
-  Term* sym = (Term*)Alloc(sizeof(Term));
-  sym->type = T_SYMBOL;
+  Term* sym = NewAtom(T_SYMBOL);
   sym->value.string.text = name;
   sym->value.string.len = strlen(name);
   return sym;
 }
 
 static Term* BIFun(const char* name, Term* (*funPtr)(struct Term*)) {
-  Term* bif = (Term*)Alloc(sizeof(Term));
-  bif->type = T_FUN_NATIVE;
+  Term* bif = NewAtom(T_FUN_NATIVE);
   bif->value.bif.funName = name;
   bif->value.bif.funPtr = funPtr;
   return bif;
@@ -25,7 +23,7 @@ static Term* BIFun(const char* name, Term* (*funPtr)(struct Term*)) {
 
 int ListLength(Term* list) {
   if (list && !IS_LIST(list))
-    die("Called ListLength on non-list.");
+    Die("Called ListLength on non-list.");
   int len = 0;
   while (list) {
     len++;
@@ -49,6 +47,8 @@ Term* ListTail(Term* list) {
 Env* BuiltinEnvironment() {
   Env* env = 0;
   env = EnvBind(env, BISymbol("nil"), 0);
+  env = EnvBind(env, BISymbol("fun"), NewAtom(T_PRIM_FUN));
+  env = EnvBind(env, BISymbol("quote"), NewAtom(T_PRIM_QUOTE));
   env = EnvBind(env, BISymbol("head"), BIFun("head", ListHead));
   return env;
 }
