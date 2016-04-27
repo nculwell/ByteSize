@@ -1,32 +1,33 @@
 
-typedef struct {
-  const char* code;
-  Token* tokens;
-  int tokenCount;
-  int nextToken;
-} ParseInfo;
-
-struct SyntaxNode;
-
-typedef struct {
-  int type;
-  const char* text;
-  int length;
-} Atom;
-
-typedef struct List {
-  struct SyntaxNode* head;
-  struct List* tail;
-} List;
+typedef enum {
+  SYN_LIST,
+  SYN_SYMBOL,
+  SYN_STRING,
+  SYN_NUMBER
+} SyntaxNodeType;
 
 typedef struct SyntaxNode {
-  int isAtom;
+  SyntaxNodeType type;
   union {
-    Atom* atom;
-    List* list;
-  } node;
+    struct {
+      const char* text;
+      int length;
+    } atom;
+    struct {
+      struct SyntaxNode* head;
+      struct SyntaxNode* tail;
+    } list;
+  } content;
 } SyntaxNode;
 
-List* Parse(const char* code, Token* tokens, int tokenCount);
-void PrintProgram(List* program);
+SyntaxNode* Parse(const char* code, Token* tokens, int tokenCount);
+void PrintProgram(SyntaxNode* program);
+
+enum DataType {
+  TYPE_LIST,
+  TYPE_PRIMITIVE,
+  TYPE_SYMBOL,
+  TYPE_STRING,
+  TYPE_NUMBER
+};
 

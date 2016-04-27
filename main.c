@@ -14,7 +14,7 @@ int main(int argc, char** argv) {
   const char* code = LoadFile(filename);
   Token* tokens;
   int tokenCount = Lex(code, &tokens);
-  List* program = Parse(code, tokens, tokenCount);
+  SyntaxNode* program = Parse(code, tokens, tokenCount);
   PrintProgram(program);
 }
 

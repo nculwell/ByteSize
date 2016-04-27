@@ -3,6 +3,7 @@
 #include <assert.h>
 
 #include "lexer.h"
+#include "parser.h"
 
 typedef struct {
   const char* code;
@@ -11,57 +12,53 @@ typedef struct {
   int nextToken;
 } ParseInfo;
 
-struct SyntaxNode;
+#define ATOM(SYNNODE) ((SYNNODE)->type != SYN_LIST)
+#define HEAD(SYNNODE) ((SYNNODE)->content.list.head)
+#define TAIL(SYNNODE) ((SYNNODE)->content.list.tail)
 
-typedef struct {
-  int type;
-  const char* text;
-  int length;
-} Atom;
-
-typedef struct List {
-  struct SyntaxNode* head;
-  struct List* tail;
-} List;
-
-typedef struct SyntaxNode {
-  int isAtom;
-  union {
-    Atom* atom;
-    List* list;
-  } node;
-} SyntaxNode;
-
-List* NewList(SyntaxNode* head, List* tail) {
-  List* newList = (List*)Alloc(sizeof(List));
-  newList->head = head;
-  newList->tail = tail;
-  return newList;
-}
-
-SyntaxNode* NewSyntaxNode(Atom* atom, List* list) {
-  assert(!atom || !list);
-  assert(atom || list);
+SyntaxNode* NewList(SyntaxNode* head, SyntaxNode* tail) {
   SyntaxNode* newNode = (SyntaxNode*)Alloc(sizeof(SyntaxNode));
-  newNode->isAtom = !list;
-  if (!list)
-    newNode->node.atom = atom;
-  else
-    newNode->node.list = list;
+  newNode->type = SYN_LIST;
+  HEAD(newNode) = head;
+  TAIL(newNode) = tail;
   return newNode;
 }
 
-Atom* ParseAtom(ParseInfo* parseInfo, Token* token) {
-  Atom* atom = (Atom*)Alloc(sizeof(Atom));
-  atom->type = token->type;
-  atom->text = parseInfo->code + token->offset;
-  atom->length = token->length;
-  return atom;
+SyntaxNode* NewAtom(SyntaxNodeType type, const char* text, int length) {
+  assert(type != SYN_LIST);
+  SyntaxNode* newNode = (SyntaxNode*)Alloc(sizeof(SyntaxNode));
+  newNode->type = type;
+  newNode->content.atom.text = text;
+  newNode->content.atom.length = length;
+  return newNode;
 }
 
-List* ParseList(ParseInfo* parseInfo) {
-  List* listHead = 0;
-  List* listTail = 0;
+SyntaxNode* ParseAtom(ParseInfo* parseInfo, Token* token) {
+  SyntaxNodeType type;
+  switch (token->type) {
+    case TOK_IDENTIFIER:
+    case TOK_KEYWORD_FUN:
+    case TOK_KEYWORD_LET:
+    case TOK_KEYWORD_NIL:
+    case TOK_KEYWORD_OR:
+      type = SYN_SYMBOL;
+      break;
+    case TOK_NUMBER:
+      type = SYN_NUMBER;
+      break;
+    case TOK_STRING:
+      type = SYN_STRING;
+      break;
+    default:
+      fprintf(stderr, "Unexpected token type.\n");
+      exit(1);
+  }
+  return NewAtom(type, parseInfo->code + token->offset, token->length);
+}
+
+SyntaxNode* ParseList(ParseInfo* parseInfo) {
+  SyntaxNode* listHead = 0;
+  SyntaxNode* listTail = 0;
   for (;;) {
     Token* nextToken = &parseInfo->tokens[parseInfo->nextToken];
     parseInfo->nextToken++;
@@ -70,33 +67,33 @@ List* ParseList(ParseInfo* parseInfo) {
     }
     SyntaxNode* newNode;
     if (nextToken->type == TOK_LPAREN) {
-      newNode = NewSyntaxNode(0, ParseList(parseInfo));
+      newNode = ParseList(parseInfo);
       if (parseInfo->nextToken == parseInfo->tokenCount) {
         fprintf(stderr, "Premature end of file.\n");
         exit(1);
       }
     } else {
-      newNode = NewSyntaxNode(ParseAtom(parseInfo, nextToken), 0);
+      newNode = ParseAtom(parseInfo, nextToken);
     }
-    List* newListPair = NewList(newNode, 0);
+    SyntaxNode* newListPair = NewList(newNode, 0);
     if (!listHead) {
       listHead = newListPair;
       listTail = newListPair;
     } else {
-      listTail->tail = newListPair;
-      listTail = listTail->tail;
+      TAIL(listTail) = newListPair;
+      listTail = TAIL(listTail);
     }
   }
   return listHead;
 }
 
-List* Parse(const char* code, Token* tokens, int tokenCount) {
+SyntaxNode* Parse(const char* code, Token* tokens, int tokenCount) {
   ParseInfo parseInfo;
   parseInfo.code = code;
   parseInfo.tokens = tokens;
   parseInfo.tokenCount = tokenCount;
   parseInfo.nextToken = 0;
-  List* program = ParseList(&parseInfo);
+  SyntaxNode* program = ParseList(&parseInfo);
   if (parseInfo.nextToken < parseInfo.tokenCount) {
     fprintf(stderr, "Unmatched right parenthesis.\n");
     exit(1);
@@ -104,48 +101,41 @@ List* Parse(const char* code, Token* tokens, int tokenCount) {
   return program;
 }
 
-void PrintAtomText(Atom* atom) {
-  fwrite(atom->text, 1, atom->length, stdout);
+void PrintAtomText(SyntaxNode* atom) {
+  fwrite(atom->content.atom.text, 1, atom->content.atom.length, stdout);
 }
 
-void PrintAtom(Atom* atom) {
+void PrintAtom(SyntaxNode* atom) {
+  assert(ATOM(atom));
   switch (atom->type) {
-    case TOK_IDENTIFIER:
-    case TOK_NUMBER:
-    case TOK_STRING:
-    case TOK_KEYWORD_FUN:
-    case TOK_KEYWORD_LET:
-    case TOK_KEYWORD_NIL:
-    case TOK_KEYWORD_OR:
+    case SYN_SYMBOL:
+    case SYN_STRING:
+    case SYN_NUMBER:
       PrintAtomText(atom);
       break;
-    case TOK_EOF:
-    case TOK_ERROR:
-    case TOK_KEYWORD:
-    case TOK_COUNT:
-      fprintf(stderr, "Unexpected token type.\n");
-      exit(1);
-      break;
+    case SYN_LIST:
+      ; /* Won't occur, checked by assert. */
   }
 }
 
-void PrintList(List* list) {
-  List* node = list;
+void PrintList(SyntaxNode* list) {
+  SyntaxNode* node = list;
   while (node) {
     if (node != list)
       printf(" ");
-    if (node->head->isAtom) {
-      PrintAtom(node->head->node.atom);
+    SyntaxNode* head = HEAD(node);
+    if (ATOM(head)) {
+      PrintAtom(head);
     } else {
       printf("(");
-      PrintList(node->head->node.list);
+      PrintList(head);
       printf(")");
     }
-    node = node->tail;
+    node = TAIL(node);
   }
 }
 
-void PrintProgram(List* program) {
+void PrintProgram(SyntaxNode* program) {
   PrintList(program);
 }
 
