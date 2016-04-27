@@ -1,3 +1,5 @@
+(head (1 2 3))
+nil
 (hello "vim" 123)
 (let a "99")
 (or a b)

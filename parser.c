@@ -129,45 +129,46 @@ Term* Parse(const char* code, Token* tokens, int tokenCount) {
   return program;
 }
 
-void PrintAtomText(Term* atom) {
+void PrintAtomText(FILE* f, Term* atom) {
   fwrite(atom->value.string.text, 1, atom->value.string.len, stdout);
 }
 
-void PrintAtom(Term* atom) {
-  assert(IS_ATOM(atom));
-  switch (atom->type) {
-    case T_SYMBOL:
-    case T_STRING:
-      PrintAtomText(atom);
-      break;
-    case T_NUMBER:   printf("%d", atom->value.number.n); break;
-    case T_PRIM_NIL: printf("nil"); break;
-    case T_PRIM_FUN: printf("fun"); break;
-    case T_FUN_NATIVE:
-    case T_FUN_USER: printf("<function>"); break;
-    case T_LIST: break; /* Won't occur, checked by assert. */
-  }
-}
-
-void PrintList(Term* list) {
+void PrintList(FILE* f, Term* list) {
   Term* node = list;
   while (node) {
     if (node != list)
-      printf(" ");
+      fprintf(f, " ");
     Term* head = HEAD(node);
     if (IS_ATOM(head)) {
-      PrintAtom(head);
+      PrintTerm(f, head);
     } else {
-      printf("(");
-      PrintList(head);
-      printf(")");
+      fprintf(f, "(");
+      PrintList(f, head);
+      fprintf(f, ")");
     }
     node = TAIL(node);
   }
 }
 
+void PrintTerm(FILE* f, Term* atom) {
+  if (!atom) {
+    fprintf(f, "nil");
+    return;
+  }
+  switch (atom->type) {
+    case T_LIST:        PrintList(f, atom); break;
+    case T_SYMBOL:
+    case T_STRING:      PrintAtomText(f, atom); break;
+    case T_NUMBER:      fprintf(f, "%d", atom->value.number.n); break;
+    case T_PRIM_NIL:    fprintf(f, "nil"); break;
+    case T_PRIM_FUN:    fprintf(f, "fun"); break;
+    case T_FUN_NATIVE:
+    case T_FUN_USER:    fprintf(f, "<function>"); break;
+  }
+}
+
 void PrintProgram(Term* program) {
-  PrintList(program);
+  PrintList(stdout, program);
   printf("\n");
 }
 

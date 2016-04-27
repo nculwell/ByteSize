@@ -32,24 +32,33 @@ void die(const char* message, ...) {
 }
 
 void dieShowingTerm(const char* message, Term* term, ...) {
-  assert(IS_STRING(term) || IS_SYMBOL(term));
   va_list args;
   va_start(args, term);
   vfprintf(stderr, message, args);
   va_end(args);
   fprintf(stderr, ": ");
-  fwrite(term->value.string.text, 1, term->value.string.len, stderr);
+  PrintTerm(stderr, term);
   fprintf(stderr, "\n");
   exit(1);
 }
 
-static Env* EnvBind(Env* env, Term* argNameSymbol, Term* value) {
+Env* EnvBind(Env* env, Term* argNameSymbol, Term* value) {
   Env* newEnv = (Env*)Alloc(sizeof(Env));
   newEnv->next = env;
   newEnv->nameText = argNameSymbol->value.string.text;
   newEnv->nameLen = argNameSymbol->value.string.len;
   newEnv->value = value;
   return newEnv;
+}
+
+void PrintEnv(FILE* f, Env* env) {
+  while (env) {
+    fwrite(env->nameText, 1, env->nameLen, f);
+    fprintf(f, " = ");
+    PrintTerm(f, env->value);
+    fprintf(f, "\n");
+    env = env->next;
+  }
 }
 
 static Term* InterpretTerm(Term* iTerm, Env* env) {
@@ -93,10 +102,13 @@ static Term* InterpretList(Term* iList, Env* env) {
 }
 
 static Term* InterpretBifCall(Term* eFun, Term* iArgList, Env* env) {
-  return 0; /* TODO */
+  assert(IS_FUN_NATIVE(eFun));
+  Term* eArgList = InterpretList(iArgList, env);
+  return eFun->value.bif.funPtr(eArgList);
 }
 
 static Term* InterpretUdfCall(Term* eFun, Term* iArgList, Env* env) {
+  assert(IS_FUN_USER(eFun));
   Term* eArgList = InterpretList(iArgList, env);
   /* Bind function arguments. */
   Env* callEnv = eFun->value.udf.funEnv;
@@ -129,7 +141,10 @@ static Term* InterpretFunctionDef(Term* iFunDef, Env* env) {
   if (!iFunDef) {
     die("Empty function definition.");
   }
-  // Term* funName = HEAD(iFunDef); // FIXME: Save name.
+  Term* funName = HEAD(iFunDef); // FIXME: Save name.
+  if (!IS_SYMBOL(funName)) {
+    die("Function name must be a symbol.");
+  }
   Term* funArgsAndBody = TAIL(iFunDef);
   if (!funArgsAndBody) {
     die("Function arguments and body missing.");
@@ -142,6 +157,7 @@ static Term* InterpretFunctionDef(Term* iFunDef, Env* env) {
   }
   Term* eFunDef = (Term*)Alloc(sizeof(Term));
   eFunDef->type = T_FUN_USER;
+  eFunDef->value.udf.funName = funName;
   eFunDef->value.udf.funBody = funBody;
   eFunDef->value.udf.funArgs = funArgDecls;
   eFunDef->value.udf.funEnv = env;
@@ -163,7 +179,7 @@ static Term* InterpretForm(Term* iTerm, Env* env) {
       return InterpretFunctionDef(TAIL(iTerm), env);
       break;
     default:
-      die("Invalid form.");
+      dieShowingTerm("Invalid form", iTerm);
   }
 }
 
@@ -192,6 +208,10 @@ static Term* InterpretSymbol(Term* iTerm, Env* env) {
 
 Term* Interpret(Term* iTerm) {
   Env* builtinEnv = BuiltinEnvironment();
+  printf("--------------------\n");
+  printf("Environment:\n");
+  PrintEnv(stdout, builtinEnv);
+  printf("--------------------\n");
   return InterpretTerm(iTerm, builtinEnv);
 }
 

@@ -40,6 +40,7 @@ typedef enum {
 #define TYPE_IS_FUN_NATIVE(TYPE) ((TYPE) == T_FUN_NATIVE)
 #define TYPE_IS_FUN_USER(TYPE) ((TYPE) == T_FUN_USER)
 
+/* FIXME: Check for null in all of these tests (b/c of nil). */
 #define IS_ATOM(TERM) (TYPE_IS_ATOM((TERM)->type))
 #define IS_LIST(TERM) (TYPE_IS_LIST((TERM)->type))
 #define IS_STRING(TERM) (TYPE_IS_STRING((TERM)->type))
@@ -89,9 +90,11 @@ typedef struct Term {
       int n;
     } number;
     struct {
+      const char* funName;  /* Function name (null-terminated string). */
       struct Term* (*funPtr)(struct Term*);
     } bif;
     struct {
+      struct Term* funName; /* Function name (a symbol). */
       struct Term* funBody; /* Function code (a list). */
       struct Term* funArgs; /* List of symbols (arg names). */
       struct Env* funEnv;   /* Closure environment. */
@@ -112,9 +115,12 @@ void* Realloc(void* ptr, size_t size);
 
 Term* Interpret(Term* iTerm);
 Env* BuiltinEnvironment();
+Env* EnvBind(Env* env, Term* argNameSymbol, Term* value);
 
 void die(const char* message, ...)
   __attribute__((noreturn));
 void dieShowingTerm(const char* message, Term* term, ...)
   __attribute__((noreturn));
+
+void PrintTerm(FILE* f, Term* atom);
 
