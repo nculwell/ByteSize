@@ -141,10 +141,10 @@ void PrintAtom(Term* atom) {
       PrintAtomText(atom);
       break;
     case T_NUMBER:   printf("%d", atom->value.number.n); break;
-    case T_PRIM_FUN: printf("fun"); break;
-    case T_PRIM_LET: printf("let"); break;
     case T_PRIM_NIL: printf("nil"); break;
-    case T_PRIM_OR:  printf("or"); break;
+    case T_PRIM_FUN: printf("fun"); break;
+    case T_FUN_NATIVE:
+    case T_FUN_USER: printf("<function>"); break;
     case T_LIST: break; /* Won't occur, checked by assert. */
   }
 }

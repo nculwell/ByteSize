@@ -117,18 +117,6 @@ void NextToken(const char* code, int initialOffset, Token* token) {
 
 void PrintToken(const char* code, Token* token) {
   switch (token->type) {
-    case TOK_KEYWORD_FUN:
-      printf("FUN: ");
-      break;
-    case TOK_KEYWORD_LET:
-      printf("LET: ");
-      break;
-    case TOK_KEYWORD_NIL:
-      printf("NIL: ");
-      break;
-    case TOK_KEYWORD_OR:
-      printf("OR: ");
-      break;
     case TOK_IDENTIFIER:
       printf("Identifier: ");
       break;
@@ -150,7 +138,6 @@ void PrintToken(const char* code, Token* token) {
     case TOK_EOF:
       printf("EOF\n");
       break;
-    case TOK_KEYWORD:
     case TOK_COUNT:
       ; // these are dummy types
   }
