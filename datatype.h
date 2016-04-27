@@ -111,4 +111,10 @@ void* Alloc(size_t size);
 void* Realloc(void* ptr, size_t size);
 
 Term* Interpret(Term* iTerm);
+Env* BuiltinEnvironment();
+
+void die(const char* message, ...)
+  __attribute__((noreturn));
+void dieShowingTerm(const char* message, Term* term, ...)
+  __attribute__((noreturn));
 

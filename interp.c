@@ -20,10 +20,7 @@ static Term* InterpretString(Term* iTerm, Env* env);
 static Term* InterpretNumber(Term* iTerm, Env* env);
 static Term* InterpretSymbol(Term* iTerm, Env* env);
 
-void die(const char* message, ...)
-  __attribute__((noreturn));
-void dieShowingTerm(const char* message, Term* term, ...)
-  __attribute__((noreturn));
+
 
 void die(const char* message, ...) {
   va_list args;
@@ -46,7 +43,7 @@ void dieShowingTerm(const char* message, Term* term, ...) {
   exit(1);
 }
 
-Env* EnvBind(Env* env, Term* argNameSymbol, Term* value) {
+static Env* EnvBind(Env* env, Term* argNameSymbol, Term* value) {
   Env* newEnv = (Env*)Alloc(sizeof(Env));
   newEnv->next = env;
   newEnv->nameText = argNameSymbol->value.string.text;
@@ -55,7 +52,7 @@ Env* EnvBind(Env* env, Term* argNameSymbol, Term* value) {
   return newEnv;
 }
 
-Term* InterpretTerm(Term* iTerm, Env* env) {
+static Term* InterpretTerm(Term* iTerm, Env* env) {
   if (!iTerm)
     return 0;
   switch (iTerm->type) {
@@ -117,17 +114,6 @@ static Term* InterpretUdfCall(Term* eFun, Term* iArgList, Env* env) {
   }
   /* Invoke the function body. */
   return InterpretTerm(eFun->value.udf.funBody, callEnv);
-}
-
-int ListLength(Term* list) {
-  if (list && !IS_LIST(list))
-    die("Called ListLength on non-list.");
-  int len = 0;
-  while (list) {
-    len++;
-    list = TAIL(list);
-  }
-  return len;
 }
 
 static void ValidateFunArgDecls(Term* funArgDecls) {
@@ -204,8 +190,8 @@ static Term* InterpretSymbol(Term* iTerm, Env* env) {
   dieShowingTerm("Unresolved symbol", iTerm);
 }
 
-// TODO: Top-level environment.
 Term* Interpret(Term* iTerm) {
-  return InterpretTerm(iTerm, 0);
+  Env* builtinEnv = BuiltinEnvironment();
+  return InterpretTerm(iTerm, builtinEnv);
 }
 
