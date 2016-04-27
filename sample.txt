@@ -1,0 +1,6 @@
+(hello "vim" 123)
+(let a "99")
+(or a b)
+(and 123 nil)
+(again now "123" 456)
+(fun (a b c) def)
