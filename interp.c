@@ -26,7 +26,6 @@ void Die(const char* message, ...) {
   vfprintf(stderr, message, args);
   va_end(args);
   fprintf(stderr, "\n");
-  abort();
   exit(1);
 }
 
@@ -38,7 +37,6 @@ void DieShowingTerm(const char* message, Term* term, ...) {
   fprintf(stderr, ": ");
   PrintTerm(stderr, term);
   fprintf(stderr, "\n");
-  abort();
   exit(1);
 }
 
