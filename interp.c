@@ -141,10 +141,10 @@ static Term* InterpretFunctionDef(Term* iFunDef, Env* env) {
   if (!iFunDef) {
     die("Empty function definition.");
   }
-  Term* funName = HEAD(iFunDef); // FIXME: Save name.
-  if (!IS_SYMBOL(funName)) {
-    die("Function name must be a symbol.");
-  }
+  //Term* funName = HEAD(iFunDef); // FIXME: Save name.
+  //if (!IS_SYMBOL(funName)) {
+  //  die("Function name must be a symbol.");
+  //}
   Term* funArgsAndBody = TAIL(iFunDef);
   if (!funArgsAndBody) {
     die("Function arguments and body missing.");
@@ -157,7 +157,7 @@ static Term* InterpretFunctionDef(Term* iFunDef, Env* env) {
   }
   Term* eFunDef = (Term*)Alloc(sizeof(Term));
   eFunDef->type = T_FUN_USER;
-  eFunDef->value.udf.funName = funName;
+  //eFunDef->value.udf.funName = funName;
   eFunDef->value.udf.funBody = funBody;
   eFunDef->value.udf.funArgs = funArgDecls;
   eFunDef->value.udf.funEnv = env;

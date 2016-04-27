@@ -94,7 +94,7 @@ typedef struct Term {
       struct Term* (*funPtr)(struct Term*);
     } bif;
     struct {
-      struct Term* funName; /* Function name (a symbol). */
+      //struct Term* funName; /* Function name (a symbol). */
       struct Term* funBody; /* Function code (a list). */
       struct Term* funArgs; /* List of symbols (arg names). */
       struct Env* funEnv;   /* Closure environment. */
