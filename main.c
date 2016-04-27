@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #include "lexer.h"
+#include "parser.h"
 
 int main(int argc, char** argv) {
   if (argc != 2) {
@@ -12,6 +13,8 @@ int main(int argc, char** argv) {
   const char* filename = argv[1];
   const char* code = LoadFile(filename);
   Token* tokens;
-  Lex(code, &tokens);
+  int tokenCount = Lex(code, &tokens);
+  List* program = Parse(code, tokens, tokenCount);
+  PrintProgram(program);
 }
 
