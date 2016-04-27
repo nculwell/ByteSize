@@ -22,6 +22,7 @@ typedef enum {
   T_PRIM_NIL    = 0x1001, /* NOTE: Nil is a null pointer but it has a type. */
   T_PRIM_FUN    = 0x1002,
   T_PRIM_QUOTE  = 0x1003,
+  T_PRIM_BEGIN  = 0x1004,
   T_FUN_NATIVE  = 0x2001,
   T_FUN_USER    = 0x2002,
 } DataType;
@@ -115,8 +116,9 @@ Term* NewList(Term* head, Term* tail);
 void* Alloc(size_t size);
 void* Realloc(void* ptr, size_t size);
 
-Term* Interpret(Term* iTerm);
 Env* BuiltinEnvironment();
+Term* GetSymbol(const char* name);
+Term* Interpret(Term* iTerm);
 Env* EnvBind(Env* env, Term* argNameSymbol, Term* value);
 
 void Die(const char* message, ...)

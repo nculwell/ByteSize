@@ -130,7 +130,7 @@ Term* Parse(const char* code, Token* tokens, int tokenCount) {
 }
 
 void PrintAtomText(FILE* f, Term* atom) {
-  fwrite(atom->value.string.text, 1, atom->value.string.len, stdout);
+  fwrite(atom->value.string.text, 1, atom->value.string.len, f);
 }
 
 void PrintList(FILE* f, Term* list) {
@@ -146,7 +146,7 @@ void PrintList(FILE* f, Term* list) {
 
 void PrintTerm(FILE* f, Term* atom) {
   if (!atom) {
-    fprintf(f, "nil");
+    fprintf(f, "#nil");
     return;
   }
   switch (atom->type) {
@@ -158,11 +158,12 @@ void PrintTerm(FILE* f, Term* atom) {
     case T_SYMBOL:
     case T_STRING:      PrintAtomText(f, atom); break;
     case T_NUMBER:      fprintf(f, "%d", atom->value.number.n); break;
-    case T_PRIM_NIL:    fprintf(f, "nil"); break;
-    case T_PRIM_FUN:    fprintf(f, "fun"); break;
-    case T_PRIM_QUOTE:  fprintf(f, "quote");
+    case T_PRIM_FUN:    fprintf(f, "#fun"); break;
+    case T_PRIM_QUOTE:  fprintf(f, "#quote"); break;
+    case T_PRIM_BEGIN:  fprintf(f, "#begin"); break;
     case T_FUN_NATIVE:
-    case T_FUN_USER:    fprintf(f, "<function>"); break;
+    case T_FUN_USER:    fprintf(f, "#function"); break;
+    case T_PRIM_NIL: break; // Handled above.
   }
 }
 

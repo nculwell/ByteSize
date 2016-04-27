@@ -1,4 +1,4 @@
-(head (1 2 3))
+(display (head (quote (1 2 3))) newline)
 nil
 (hello "vim" 123)
 (let a "99")

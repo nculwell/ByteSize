@@ -20,14 +20,13 @@ static Term* InterpretString(Term* iTerm, Env* env);
 static Term* InterpretNumber(Term* iTerm, Env* env);
 static Term* InterpretSymbol(Term* iTerm, Env* env);
 
-
-
 void Die(const char* message, ...) {
   va_list args;
   va_start(args, message);
   vfprintf(stderr, message, args);
   va_end(args);
   fprintf(stderr, "\n");
+  abort();
   exit(1);
 }
 
@@ -39,6 +38,7 @@ void DieShowingTerm(const char* message, Term* term, ...) {
   fprintf(stderr, ": ");
   PrintTerm(stderr, term);
   fprintf(stderr, "\n");
+  abort();
   exit(1);
 }
 
@@ -75,6 +75,7 @@ static Term* InterpretTerm(Term* iTerm, Env* env) {
       return InterpretSymbol(iTerm, env);
     case T_PRIM_FUN:
     case T_PRIM_QUOTE:
+    case T_PRIM_BEGIN:
     case T_FUN_NATIVE:
     case T_FUN_USER:
       ; /* The parser doesn't generate these. */
@@ -165,14 +166,41 @@ static Term* InterpretFunctionDef(Term* iFunDef, Env* env) {
   return eFunDef;
 }
 
+static Term* InterpretQuote(Term* iForm, Env* env) {
+  if (!iForm) {
+    Die("Empty quote form.");
+  }
+  Term* iQuotedTerm = HEAD(iForm);
+  Term* iFormTail = TAIL(iForm);
+  if (iFormTail) {
+    Die("Quote must have only one argument.");
+  }
+  /* TODO: Support unquote. */
+  return iQuotedTerm;
+}
+
+static Term* InterpretBegin(Term* iForm, Env* env) {
+  if (!iForm) {
+    return 0;
+  }
+  for (;;) {
+    Term* eFormHead = InterpretTerm(HEAD(iForm), env);
+    if (!TAIL(iForm)) {
+      return eFormHead;
+    }
+    iForm = TAIL(iForm);
+  }
+}
+
 static Term* InterpretForm(Term* iTerm, Env* env) {
   /* Interpret the head first, then the head determines
      the interpretation of the rest of the form. */
   Term* eHead = InterpretTerm(HEAD(iTerm), env);
   switch (eHead->type) {
     case T_PRIM_QUOTE:
-      /* TODO: Support unquote. */
-      return TAIL(iTerm);
+      return InterpretQuote(TAIL(iTerm), env);
+    case T_PRIM_BEGIN:
+      return InterpretBegin(TAIL(iTerm), env);
     case T_FUN_NATIVE:
       return InterpretBifCall(eHead, TAIL(iTerm), env);
       break;
@@ -195,27 +223,34 @@ static Term* InterpretNumber(Term* iTerm, Env* env) {
   return iTerm;
 }
 
-static Term* InterpretSymbol(Term* iTerm, Env* env) {
-  assert(IS_SYMBOL(iTerm));
+static Term* EnvLookup(Env* env, const char* name, int len) {
   Env* envNode = env;
   while (envNode) {
-    if (envNode->nameLen == iTerm->value.string.len
-        && 0 == strncmp(envNode->nameText,
-                        iTerm->value.string.text,
-                        envNode->nameLen)) {
+    if (envNode->nameLen == len
+        && 0 == strncmp(envNode->nameText, name, len)) {
       return envNode->value;
     }
     envNode = envNode->next;
   }
-  DieShowingTerm("Unresolved symbol", iTerm);
+  return (Term*)4;
 }
 
-Term* Interpret(Term* iTerm) {
+static Term* InterpretSymbol(Term* iTerm, Env* env) {
+  assert(IS_SYMBOL(iTerm));
+  Term* t = EnvLookup(env, iTerm->value.string.text, iTerm->value.string.len);
+  if (t == (Term*)4) {
+    DieShowingTerm("Unresolved symbol", iTerm);
+  }
+  return t;
+}
+
+Term* Interpret(Term* iProgram) {
   Env* builtinEnv = BuiltinEnvironment();
   printf("--------------------\n");
   printf("Environment:\n");
   PrintEnv(stdout, builtinEnv);
   printf("--------------------\n");
-  return InterpretTerm(iTerm, builtinEnv);
+  Term* iWrappedProgram = NewList(GetSymbol("begin"), iProgram);
+  return InterpretTerm(iWrappedProgram, builtinEnv);
 }
 
