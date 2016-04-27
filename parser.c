@@ -139,13 +139,7 @@ void PrintList(FILE* f, Term* list) {
     if (node != list)
       fprintf(f, " ");
     Term* head = HEAD(node);
-    if (IS_ATOM(head)) {
-      PrintTerm(f, head);
-    } else {
-      fprintf(f, "(");
-      PrintList(f, head);
-      fprintf(f, ")");
-    }
+    PrintTerm(f, head);
     node = TAIL(node);
   }
 }
@@ -156,7 +150,11 @@ void PrintTerm(FILE* f, Term* atom) {
     return;
   }
   switch (atom->type) {
-    case T_LIST:        PrintList(f, atom); break;
+    case T_LIST:
+      fprintf(f, "(");
+      PrintList(f, atom);
+      fprintf(f, ")");
+      break;
     case T_SYMBOL:
     case T_STRING:      PrintAtomText(f, atom); break;
     case T_NUMBER:      fprintf(f, "%d", atom->value.number.n); break;
