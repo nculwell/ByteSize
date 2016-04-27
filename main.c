@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "datatype.h"
 #include "lexer.h"
 #include "parser.h"
 
@@ -14,7 +15,7 @@ int main(int argc, char** argv) {
   const char* code = LoadFile(filename);
   Token* tokens;
   int tokenCount = Lex(code, &tokens);
-  SyntaxNode* program = Parse(code, tokens, tokenCount);
+  Term* program = Parse(code, tokens, tokenCount);
   PrintProgram(program);
 }
 

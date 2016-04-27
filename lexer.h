@@ -4,8 +4,8 @@
 enum TokenType {
   TOK_EOF = 0,
   TOK_IDENTIFIER,
-  TOK_NUMBER,
   TOK_STRING,
+  TOK_NUMBER,
   TOK_LPAREN,
   TOK_RPAREN,
   TOK_ERROR,

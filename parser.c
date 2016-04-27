@@ -1,7 +1,9 @@
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <assert.h>
 
+#include "datatype.h"
 #include "lexer.h"
 #include "parser.h"
 
@@ -12,60 +14,86 @@ typedef struct {
   int nextToken;
 } ParseInfo;
 
-#define ATOM(SYNNODE) ((SYNNODE)->type != SYN_LIST)
-#define HEAD(SYNNODE) ((SYNNODE)->content.list.head)
-#define TAIL(SYNNODE) ((SYNNODE)->content.list.tail)
-
-SyntaxNode* NewList(SyntaxNode* head, SyntaxNode* tail) {
-  SyntaxNode* newNode = (SyntaxNode*)Alloc(sizeof(SyntaxNode));
-  newNode->type = SYN_LIST;
+Term* NewList(Term* head, Term* tail) {
+  Term* newNode = (Term*)Alloc(sizeof(Term));
+  newNode->type = T_LIST;
   HEAD(newNode) = head;
   TAIL(newNode) = tail;
   return newNode;
 }
 
-SyntaxNode* NewAtom(SyntaxNodeType type, const char* text, int length) {
-  assert(type != SYN_LIST);
-  SyntaxNode* newNode = (SyntaxNode*)Alloc(sizeof(SyntaxNode));
-  newNode->type = type;
-  newNode->content.atom.text = text;
-  newNode->content.atom.length = length;
-  return newNode;
+Term* NewAtom(DataType type) {
+  assert(TYPE_IS_ATOM(type));
+  Term* newAtom = (Term*)Alloc(sizeof(Term));
+  newAtom->type = type;
+  return newAtom;
 }
 
-SyntaxNode* ParseAtom(ParseInfo* parseInfo, Token* token) {
-  SyntaxNodeType type;
+// TODO: Handle more than just integers.
+int ParseNumber(const char* text, int length) {
+  char *endptr;
+  errno = 0;
+  long n = strtol(text, &endptr, 10);
+  // Since the string isn't null-terminated,
+  // instead of checking that *endptr=='\0' we
+  // check if it was advanced the right number
+  // of characters.
+  if (errno != 0 || endptr - text < length) {
+    fprintf(stderr, "Failed to parse number: ");
+    fwrite(text, 1, length, stderr);
+    fprintf(stderr, "\n");
+    if (errno != 0)
+      fprintf(stderr, "errno\n");
+    else
+      fprintf(stderr, "endptr: %d\n", *endptr);
+    exit(1);
+  }
+  if (n < (long)INT_MIN || n > (long)INT_MAX) {
+    fprintf(stderr, "Number out of range: ");
+    fwrite(text, 1, length, stderr);
+    fprintf(stderr, "\n");
+    exit(1);
+  }
+  return (int)n;
+}
+
+Term* ParseAtom(ParseInfo* parseInfo, Token* token) {
+  Term* term;
+  const char* tokenText = parseInfo->code + token->offset;
   switch (token->type) {
     case TOK_IDENTIFIER:
-    case TOK_KEYWORD_FUN:
-    case TOK_KEYWORD_LET:
-    case TOK_KEYWORD_NIL:
-    case TOK_KEYWORD_OR:
-      type = SYN_SYMBOL;
-      break;
-    case TOK_NUMBER:
-      type = SYN_NUMBER;
+      // TODO: Intern symbols.
+      term = NewAtom(T_SYMBOL);
+      term->value.string.text = tokenText;
+      term->value.string.len = token->length;
       break;
     case TOK_STRING:
-      type = SYN_STRING;
+      // TODO: Copy strings to a consolidated space.
+      term = NewAtom(T_STRING);
+      term->value.string.text = tokenText;
+      term->value.string.len = token->length;
+      break;
+    case TOK_NUMBER:
+      term = NewAtom(T_NUMBER);
+      term->value.number.n = ParseNumber(tokenText, token->length);
       break;
     default:
-      fprintf(stderr, "Unexpected token type.\n");
+      fprintf(stderr, "Unexpected token type: %d\n", token->type);
       exit(1);
   }
-  return NewAtom(type, parseInfo->code + token->offset, token->length);
+  return term;
 }
 
-SyntaxNode* ParseList(ParseInfo* parseInfo) {
-  SyntaxNode* listHead = 0;
-  SyntaxNode* listTail = 0;
+Term* ParseList(ParseInfo* parseInfo) {
+  Term* listHead = 0;
+  Term* listTail = 0;
   for (;;) {
     Token* nextToken = &parseInfo->tokens[parseInfo->nextToken];
     parseInfo->nextToken++;
     if (nextToken->type == TOK_EOF || nextToken->type == TOK_RPAREN) {
       break;
     }
-    SyntaxNode* newNode;
+    Term* newNode;
     if (nextToken->type == TOK_LPAREN) {
       newNode = ParseList(parseInfo);
       if (parseInfo->nextToken == parseInfo->tokenCount) {
@@ -75,7 +103,7 @@ SyntaxNode* ParseList(ParseInfo* parseInfo) {
     } else {
       newNode = ParseAtom(parseInfo, nextToken);
     }
-    SyntaxNode* newListPair = NewList(newNode, 0);
+    Term* newListPair = NewList(newNode, 0);
     if (!listHead) {
       listHead = newListPair;
       listTail = newListPair;
@@ -87,13 +115,13 @@ SyntaxNode* ParseList(ParseInfo* parseInfo) {
   return listHead;
 }
 
-SyntaxNode* Parse(const char* code, Token* tokens, int tokenCount) {
+Term* Parse(const char* code, Token* tokens, int tokenCount) {
   ParseInfo parseInfo;
   parseInfo.code = code;
   parseInfo.tokens = tokens;
   parseInfo.tokenCount = tokenCount;
   parseInfo.nextToken = 0;
-  SyntaxNode* program = ParseList(&parseInfo);
+  Term* program = ParseList(&parseInfo);
   if (parseInfo.nextToken < parseInfo.tokenCount) {
     fprintf(stderr, "Unmatched right parenthesis.\n");
     exit(1);
@@ -101,30 +129,33 @@ SyntaxNode* Parse(const char* code, Token* tokens, int tokenCount) {
   return program;
 }
 
-void PrintAtomText(SyntaxNode* atom) {
-  fwrite(atom->content.atom.text, 1, atom->content.atom.length, stdout);
+void PrintAtomText(Term* atom) {
+  fwrite(atom->value.string.text, 1, atom->value.string.len, stdout);
 }
 
-void PrintAtom(SyntaxNode* atom) {
-  assert(ATOM(atom));
+void PrintAtom(Term* atom) {
+  assert(IS_ATOM(atom));
   switch (atom->type) {
-    case SYN_SYMBOL:
-    case SYN_STRING:
-    case SYN_NUMBER:
+    case T_SYMBOL:
+    case T_STRING:
       PrintAtomText(atom);
       break;
-    case SYN_LIST:
-      ; /* Won't occur, checked by assert. */
+    case T_NUMBER:   printf("%d", atom->value.number.n); break;
+    case T_PRIM_FUN: printf("fun"); break;
+    case T_PRIM_LET: printf("let"); break;
+    case T_PRIM_NIL: printf("nil"); break;
+    case T_PRIM_OR:  printf("or"); break;
+    case T_LIST: break; /* Won't occur, checked by assert. */
   }
 }
 
-void PrintList(SyntaxNode* list) {
-  SyntaxNode* node = list;
+void PrintList(Term* list) {
+  Term* node = list;
   while (node) {
     if (node != list)
       printf(" ");
-    SyntaxNode* head = HEAD(node);
-    if (ATOM(head)) {
+    Term* head = HEAD(node);
+    if (IS_ATOM(head)) {
       PrintAtom(head);
     } else {
       printf("(");
@@ -135,7 +166,7 @@ void PrintList(SyntaxNode* list) {
   }
 }
 
-void PrintProgram(SyntaxNode* program) {
+void PrintProgram(Term* program) {
   PrintList(program);
 }
 

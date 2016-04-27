@@ -84,11 +84,7 @@ void NextToken(const char* code, int initialOffset, Token* token) {
     if (allDigits) {
       token->type = TOK_NUMBER;
     } else {
-      int keywordId = MatchKeyword(code, token, offset);
-      if (keywordId == -1)
-        token->type = TOK_IDENTIFIER;
-      else
-        token->type = TOK_KEYWORD + keywordId;
+      token->type = TOK_IDENTIFIER;
     }
   } else if (code[offset] == '"') {
     // TOKEN TYPE: String.

@@ -1,4 +1,5 @@
 
+/*
 typedef enum {
   SYN_LIST,
   SYN_SYMBOL,
@@ -19,15 +20,8 @@ typedef struct SyntaxNode {
     } list;
   } content;
 } SyntaxNode;
+*/
 
-SyntaxNode* Parse(const char* code, Token* tokens, int tokenCount);
-void PrintProgram(SyntaxNode* program);
-
-enum DataType {
-  TYPE_LIST,
-  TYPE_PRIMITIVE,
-  TYPE_SYMBOL,
-  TYPE_STRING,
-  TYPE_NUMBER
-};
+Term* Parse(const char* code, Token* tokens, int tokenCount);
+void PrintProgram(Term* program);
 
