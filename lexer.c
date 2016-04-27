@@ -13,12 +13,12 @@ enum TokenType {
   TOK_LPAREN,
   TOK_RPAREN,
   TOK_ERROR,
-  TOK_KEYWORD,
+  TOK_KEYWORD, // dummy type used to calculate keyword IDs
   TOK_KEYWORD_FUN,
   TOK_KEYWORD_LET,
   TOK_KEYWORD_NIL,
   TOK_KEYWORD_OR,
-  TOK_COUNT
+  TOK_COUNT // dummy type used to count the number of values
 };
 
 typedef struct {
@@ -35,8 +35,6 @@ static const char* keywords[] = {
   "or",
   NULL
 };
-
-static int keywordsLength;
 
 int MatchKeyword(const char* code, Token* token, int offset) {
   // TODO: Binary search.
@@ -160,7 +158,7 @@ void PrintToken(const char* code, Token* token) {
       break;
     case TOK_KEYWORD:
     case TOK_COUNT:
-      ; // these won't occur
+      ; // these are dummy types
   }
   fwrite(code + token->offset, 1, token->length, stdout);
   printf("\n");
@@ -169,19 +167,11 @@ void PrintToken(const char* code, Token* token) {
 void Lex(const char* code) {
   int offset = 0;
   Token token;
-  // Initialize keywordsLength.
-  keywordsLength = 0;
-  while (keywords[keywordsLength] != NULL)
-    keywordsLength++;
-  //char displayBuffer[512];
   for (;;) {
     NextToken(code, offset, &token);
     offset = token.offset + token.length;
     PrintToken(code, &token);
-    if (token.type == TOK_EOF) {
-      break;
-    }
-    if (token.type == TOK_ERROR) {
+    if (token.type == TOK_EOF || token.type == TOK_ERROR) {
       break;
     }
   }
