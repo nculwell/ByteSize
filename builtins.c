@@ -66,11 +66,14 @@ Term* Display(Term* args) {
 
 Env* BuiltinEnvironment() {
   Env* env = 0;
+  /* Primitives */
   env = EnvBind(env, GetSymbol("nil"), 0);
   env = EnvBind(env, GetSymbol("fun"), NewAtom(T_PRIM_FUN));
   env = EnvBind(env, GetSymbol("begin"), NewAtom(T_PRIM_BEGIN));
   env = EnvBind(env, GetSymbol("quote"), NewAtom(T_PRIM_QUOTE));
   env = EnvBind(env, GetSymbol("head"), BIFun("head", ListHead));
+  env = EnvBind(env, GetSymbol("tail"), BIFun("tail", ListTail));
+  /* I/O */
   env = EnvBind(env, GetSymbol("display"), BIFun("display", Display));
   env = EnvBind(env, GetSymbol("newline"), MakeString("\n"));
   return env;
