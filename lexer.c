@@ -5,27 +5,7 @@
 #include <string.h>
 #include <ctype.h>
 
-enum TokenType {
-  TOK_EOF = 0,
-  TOK_IDENTIFIER,
-  TOK_NUMBER,
-  TOK_STRING,
-  TOK_LPAREN,
-  TOK_RPAREN,
-  TOK_ERROR,
-  TOK_KEYWORD, // dummy type used to calculate keyword IDs
-  TOK_KEYWORD_FUN,
-  TOK_KEYWORD_LET,
-  TOK_KEYWORD_NIL,
-  TOK_KEYWORD_OR,
-  TOK_COUNT // dummy type used to count the number of values
-};
-
-typedef struct {
-  enum TokenType type;
-  int offset;
-  int length;
-} Token;
+#include "lexer.h"
 
 static const char* keywords[] = {
   "",
@@ -39,7 +19,16 @@ static const char* keywords[] = {
 void* Alloc(size_t size) {
   void* p = malloc(size);
   if (!p) {
-    fprintf("Out of memory.\n");
+    fprintf(stderr, "Out of memory.\n");
+    exit(1);
+  }
+  return p;
+}
+
+void* Realloc(void* p, size_t size) {
+  p = realloc(p, size);
+  if (!p) {
+    fprintf(stderr, "Out of memory.\n");
     exit(1);
   }
   return p;
@@ -181,17 +170,18 @@ int Lex(const char* code, Token** tokens) {
   for (;;) {
     if (tokenCount == tokenCapacity) {
       tokenCapacity *= 2;
-      *tokens = (Token*)Alloc(tokenCapacity * sizeof(Token));
+      *tokens = (Token*)Realloc(tokens, tokenCapacity * sizeof(Token));
     }
     Token* token = &(*tokens)[tokenCount];
     NextToken(code, offset, token);
-    offset = (*tokens)[tokenCount]->offset + token->length;
-    tokenCount++;
+    offset = token->offset + token->length;
     PrintToken(code, &(*tokens)[tokenCount]);
+    tokenCount++;
     if (token->type == TOK_EOF || token->type == TOK_ERROR) {
       break;
     }
   }
+  return tokenCount;
 }
 
 const char* LoadFile(const char* filename) {

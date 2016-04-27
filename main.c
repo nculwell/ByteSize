@@ -2,8 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-const char* LoadFile(const char*);
-void Lex(const char*);
+#include "lexer.h"
 
 int main(int argc, char** argv) {
   if (argc != 2) {
@@ -12,6 +11,7 @@ int main(int argc, char** argv) {
   }
   const char* filename = argv[1];
   const char* code = LoadFile(filename);
-  Lex(code);
+  Token* tokens;
+  Lex(code, &tokens);
 }
 
