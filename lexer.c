@@ -36,6 +36,15 @@ static const char* keywords[] = {
   NULL
 };
 
+void* Alloc(size_t size) {
+  void* p = malloc(size);
+  if (!p) {
+    fprintf("Out of memory.\n");
+    exit(1);
+  }
+  return p;
+}
+
 int MatchKeyword(const char* code, Token* token, int offset) {
   // TODO: Binary search.
   int keywordId = 1;
@@ -164,14 +173,22 @@ void PrintToken(const char* code, Token* token) {
   printf("\n");
 }
 
-void Lex(const char* code) {
+int Lex(const char* code, Token** tokens) {
   int offset = 0;
-  Token token;
+  int tokenCapacity = 1024;
+  int tokenCount = 0;
+  *tokens = (Token*)Alloc(tokenCapacity * sizeof(Token));
   for (;;) {
-    NextToken(code, offset, &token);
-    offset = token.offset + token.length;
-    PrintToken(code, &token);
-    if (token.type == TOK_EOF || token.type == TOK_ERROR) {
+    if (tokenCount == tokenCapacity) {
+      tokenCapacity *= 2;
+      *tokens = (Token*)Alloc(tokenCapacity * sizeof(Token));
+    }
+    Token* token = &(*tokens)[tokenCount];
+    NextToken(code, offset, token);
+    offset = (*tokens)[tokenCount]->offset + token->length;
+    tokenCount++;
+    PrintToken(code, &(*tokens)[tokenCount]);
+    if (token->type == TOK_EOF || token->type == TOK_ERROR) {
       break;
     }
   }
@@ -186,11 +203,7 @@ const char* LoadFile(const char* filename) {
   fseek(f, 0, SEEK_END);
   size_t fileLength = ftell(f); // TODO: check cast
   rewind(f);
-  char* fileContents = (char*)malloc(fileLength + 1);
-  if (!fileContents) {
-    fprintf(stderr, "Out of memory opening file: %s\n", filename);
-    exit(1);
-  }
+  char* fileContents = (char*)Alloc(fileLength + 1);
   size_t nRead = 0;
   while (nRead += fread(fileContents + nRead, 1, fileLength - nRead, f), nRead < fileLength) {
   }
