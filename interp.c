@@ -15,10 +15,10 @@ that has already been evaluated.
 #include <assert.h>
 #include "datatype.h"
 
-static Term* InterpretForm(Term* iTerm, Env* env);
-static Term* InterpretString(Term* iTerm, Env* env);
-static Term* InterpretNumber(Term* iTerm, Env* env);
-static Term* InterpretSymbol(Term* iTerm, Env* env);
+static Term* InterpretForm(Term* iTerm, Env* env, MemPool* pool);
+static Term* InterpretString(Term* iTerm, Env* env, MemPool* pool);
+static Term* InterpretNumber(Term* iTerm, Env* env, MemPool* pool);
+static Term* InterpretSymbol(Term* iTerm, Env* env, MemPool* pool);
 
 void Die(const char* message, ...) {
   va_list args;
@@ -40,16 +40,7 @@ void DieShowingTerm(const char* message, Term* term, ...) {
   exit(1);
 }
 
-Env* EnvBind(Env* env, Term* argNameSymbol, Term* value) {
-  Env* newEnv = (Env*)Alloc(sizeof(Env));
-  newEnv->next = env;
-  newEnv->nameText = argNameSymbol->value.string.text;
-  newEnv->nameLen = argNameSymbol->value.string.len;
-  newEnv->value = value;
-  return newEnv;
-}
-
-void PrintEnv(FILE* f, Env* env) {
+void PrintEnv(FILE* f, Env* env, MemPool* pool) {
   while (env) {
     fwrite(env->nameText, 1, env->nameLen, f);
     fprintf(f, " = ");
@@ -59,11 +50,13 @@ void PrintEnv(FILE* f, Env* env) {
   }
 }
 
-static Term* InterpretTerm(Term* iTerm, Env* env) {
+static Term* InterpretTerm(Term* iTerm, Env* env, MemPool* pool) {
   if (!iTerm)
     return 0;
   switch (iTerm->type) {
-    case T_LIST:
+    case T_PRIM_NIL:
+      ; /* Already handled by the null check above. */
+    case T_CONS:
       return InterpretForm(iTerm, env);
     case T_STRING:
       return InterpretString(iTerm, env);
@@ -76,38 +69,37 @@ static Term* InterpretTerm(Term* iTerm, Env* env) {
     case T_PRIM_BEGIN:
     case T_FUN_NATIVE:
     case T_FUN_USER:
+    case T_FUN_MACRO:
       ; /* The parser doesn't generate these. */
-    case T_PRIM_NIL:
-      ; /* Already handled by the null check above. */
   }
   Die("Unexpected term type in InterpretTerm.");
 }
 
-static Term* InterpretList(Term* iList, Env* env) {
-  /* Shortcut for lists with no arguments. */
+static Term* InterpretList(Term* iList, Env* env, MemPool* pool) {
+  /* Shortcut for lists with no elements. */
   if (!iList) {
     return 0;
   }
   /* Evaluate list elements in left-to-right order. */
-  Term* eListHead = NewList(InterpretTerm(HEAD(iList), env), 0);
+  Term* eListHead = NewCons(InterpretTerm(HEAD(iList), env), 0);
   Term* eListLast = eListHead;
   Term* iListNode = TAIL(iList);
   while (iListNode) {
     eListLast->value.list.tail =
-      NewList(InterpretTerm(HEAD(iListNode), env), 0);
+      NewCons(InterpretTerm(HEAD(iListNode), env), 0);
     eListLast = TAIL(eListLast);
     iListNode = TAIL(iListNode);
   }
   return eListHead;
 }
 
-static Term* InterpretBifCall(Term* eFun, Term* iArgList, Env* env) {
+static Term* InterpretBifCall(Term* eFun, Term* iArgList, Env* env, MemPool* pool) {
   assert(IS_FUN_NATIVE(eFun));
   Term* eArgList = InterpretList(iArgList, env);
   return eFun->value.bif.funPtr(eArgList);
 }
 
-static Term* InterpretUdfCall(Term* eFun, Term* iArgList, Env* env) {
+static Term* InterpretUdfCall(Term* eFun, Term* iArgList, Env* env, MemPool* pool) {
   assert(IS_FUN_USER(eFun));
   Term* eArgList = InterpretList(iArgList, env);
   /* Bind function arguments. */
@@ -117,7 +109,7 @@ static Term* InterpretUdfCall(Term* eFun, Term* iArgList, Env* env) {
     if (eArgList == NULL) {
       Die("Too few arguments to function.");
     }
-    callEnv = EnvBind(env, HEAD(funArgNames), HEAD(eArgList));
+    callEnv = EnvBind(pool, env, HEAD(funArgNames), HEAD(eArgList));
     eArgList = TAIL(eArgList);
     funArgNames = TAIL(funArgNames);
   }
@@ -137,7 +129,7 @@ static void ValidateFunArgDecls(Term* funArgDecls) {
   }
 }
 
-static Term* InterpretFunctionDef(Term* iFunDef, Env* env) {
+static Term* InterpretFunctionDef(Term* iFunDef, Env* env, MemPool* pool) {
   if (!iFunDef) {
     Die("Empty function definition.");
   }
@@ -164,7 +156,7 @@ static Term* InterpretFunctionDef(Term* iFunDef, Env* env) {
   return eFunDef;
 }
 
-static Term* InterpretQuote(Term* iForm, Env* env) {
+static Term* InterpretQuote(Term* iForm, Env* env, MemPool* pool) {
   if (!iForm) {
     Die("Empty quote form.");
   }
@@ -177,7 +169,7 @@ static Term* InterpretQuote(Term* iForm, Env* env) {
   return iQuotedTerm;
 }
 
-static Term* InterpretBegin(Term* iForm, Env* env) {
+static Term* InterpretBegin(Term* iForm, Env* env, MemPool* pool) {
   if (!iForm) {
     return 0;
   }
@@ -190,7 +182,7 @@ static Term* InterpretBegin(Term* iForm, Env* env) {
   }
 }
 
-static Term* InterpretForm(Term* iTerm, Env* env) {
+static Term* InterpretForm(Term* iTerm, Env* env, MemPool* pool) {
   /* Interpret the head first, then the head determines
      the interpretation of the rest of the form. */
   Term* eHead = InterpretTerm(HEAD(iTerm), env);
@@ -213,15 +205,15 @@ static Term* InterpretForm(Term* iTerm, Env* env) {
   }
 }
 
-static Term* InterpretString(Term* iTerm, Env* env) {
+static Term* InterpretString(Term* iTerm, Env* env, MemPool* pool) {
   return iTerm;
 }
 
-static Term* InterpretNumber(Term* iTerm, Env* env) {
+static Term* InterpretNumber(Term* iTerm, Env* env, MemPool* pool) {
   return iTerm;
 }
 
-static Term* EnvLookup(Env* env, const char* name, int len) {
+Term* EnvLookup(Env* env, const char* name, int len) {
   Env* envNode = env;
   while (envNode) {
     if (envNode->nameLen == len
@@ -230,25 +222,26 @@ static Term* EnvLookup(Env* env, const char* name, int len) {
     }
     envNode = envNode->next;
   }
-  return (Term*)4;
+  return ENV_LOOKUP_FAILED;
 }
 
-static Term* InterpretSymbol(Term* iTerm, Env* env) {
+static Term* InterpretSymbol(Term* iTerm, Env* env, MemPool* pool) {
   assert(IS_SYMBOL(iTerm));
   Term* t = EnvLookup(env, iTerm->value.string.text, iTerm->value.string.len);
-  if (t == (Term*)4) {
+  if (t == ENV_LOOKUP_FAILED) {
     DieShowingTerm("Unresolved symbol", iTerm);
   }
   return t;
 }
 
 Term* Interpret(Term* iProgram) {
-  Env* builtinEnv = BuiltinEnvironment();
+  MemPool* pool = NewMemPool();
+  Env* builtinEnv = BuiltinEnvironment(pool);
   printf("--------------------\n");
   printf("Environment:\n");
   PrintEnv(stdout, builtinEnv);
   printf("--------------------\n");
-  Term* iWrappedProgram = NewList(GetSymbol("begin"), iProgram);
-  return InterpretTerm(iWrappedProgram, builtinEnv);
+  Term* iWrappedProgram = NewCons(GetSymbol("begin"), iProgram);
+  return InterpretTerm(iWrappedProgram, builtinEnv, pool);
 }
 

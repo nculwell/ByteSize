@@ -11,6 +11,8 @@ int main(int argc, char** argv) {
     fprintf(stderr, "Usage:\n");
     exit(1);
   }
+  printf("sizeof(Term) = %d\n", sizeof(Term));
+  printf("sizeof(Env) = %d\n", sizeof(Env));
   const char* filename = argv[1];
   const char* code = LoadFile(filename);
   Token* tokens;

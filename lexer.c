@@ -5,35 +5,10 @@
 #include <string.h>
 #include <ctype.h>
 
+#include "datatype.h"
 #include "lexer.h"
 
-static const char* keywords[] = {
-  "",
-  "fun",
-  "let",
-  "nil",
-  "or",
-  NULL
-};
-
-void* Alloc(size_t size) {
-  void* p = malloc(size);
-  if (!p) {
-    fprintf(stderr, "Out of memory.\n");
-    exit(1);
-  }
-  return p;
-}
-
-void* Realloc(void* p, size_t size) {
-  p = realloc(p, size);
-  if (!p) {
-    fprintf(stderr, "Out of memory.\n");
-    exit(1);
-  }
-  return p;
-}
-
+#if 0
 int MatchKeyword(const char* code, Token* token, int offset) {
   // TODO: Binary search.
   int keywordId = 1;
@@ -50,8 +25,18 @@ int MatchKeyword(const char* code, Token* token, int offset) {
     keywordId++;
   }
 }
+#endif
 
-int SkipWhitespace(const char* code, int offset) {
+static void* LexerMalloc(size_t size) {
+  void* p = malloc(size);
+  if (!p) {
+    fprintf(stderr, "Out of memory.\n");
+    exit(1);
+  }
+  return p;
+}
+
+static int SkipWhitespace(const char* code, int offset) {
   for (;;) {
     int c = code[offset];
     if (c != ' ' && c != '\n' && c != '\t')
@@ -61,7 +46,7 @@ int SkipWhitespace(const char* code, int offset) {
   return offset;
 }
 
-void NextToken(const char* code, int initialOffset, Token* token) {
+static void NextToken(const char* code, int initialOffset, Token* token) {
   int offset = SkipWhitespace(code, initialOffset);
   token->offset = offset;
   token->type = TOK_ERROR; // initialize type to error as a failsafe
@@ -115,7 +100,7 @@ void NextToken(const char* code, int initialOffset, Token* token) {
   token->length = offset - token->offset;
 }
 
-void PrintToken(const char* code, Token* token) {
+static void PrintToken(const char* code, Token* token) {
   switch (token->type) {
     case TOK_IDENTIFIER:
       printf("Identifier: ");
@@ -149,7 +134,7 @@ int Lex(const char* code, Token** tokens) {
   int offset = 0;
   int tokenCapacity = 1024;
   int tokenCount = 0;
-  *tokens = (Token*)Alloc(tokenCapacity * sizeof(Token));
+  *tokens = (Token*)LexerMalloc(tokenCapacity * sizeof(Token));
   for (;;) {
     if (tokenCount == tokenCapacity) {
       tokenCapacity *= 2;
@@ -176,7 +161,7 @@ const char* LoadFile(const char* filename) {
   fseek(f, 0, SEEK_END);
   size_t fileLength = ftell(f); // TODO: check cast
   rewind(f);
-  char* fileContents = (char*)Alloc(fileLength + 1);
+  char* fileContents = (char*)LexerMalloc(fileLength + 1);
   size_t nRead = 0;
   while (nRead += fread(fileContents + nRead, 1, fileLength - nRead, f), nRead < fileLength) {
   }

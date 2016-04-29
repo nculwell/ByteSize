@@ -14,21 +14,6 @@ typedef struct {
   int nextToken;
 } ParseInfo;
 
-Term* NewList(Term* head, Term* tail) {
-  Term* newNode = (Term*)Alloc(sizeof(Term));
-  newNode->type = T_LIST;
-  HEAD(newNode) = head;
-  TAIL(newNode) = tail;
-  return newNode;
-}
-
-Term* NewAtom(DataType type) {
-  assert(TYPE_IS_ATOM(type));
-  Term* newAtom = (Term*)Alloc(sizeof(Term));
-  newAtom->type = type;
-  return newAtom;
-}
-
 // TODO: Handle more than just integers.
 int ParseNumber(const char* text, int length) {
   char *endptr;
@@ -103,7 +88,7 @@ Term* ParseList(ParseInfo* parseInfo) {
     } else {
       newNode = ParseAtom(parseInfo, nextToken);
     }
-    Term* newListPair = NewList(newNode, 0);
+    Term* newListPair = NewCons(newNode, 0);
     if (!listHead) {
       listHead = newListPair;
       listTail = newListPair;
@@ -150,7 +135,7 @@ void PrintTerm(FILE* f, Term* atom) {
     return;
   }
   switch (atom->type) {
-    case T_LIST:
+    case T_CONS:
       fprintf(f, "(");
       PrintList(f, atom);
       fprintf(f, ")");
@@ -163,6 +148,7 @@ void PrintTerm(FILE* f, Term* atom) {
     case T_PRIM_BEGIN:  fprintf(f, "#begin"); break;
     case T_FUN_NATIVE:
     case T_FUN_USER:    fprintf(f, "#function"); break;
+    case T_FUN_MACRO:   fprintf(f, "#macro"); break;
     case T_PRIM_NIL: break; // Handled above.
   }
 }

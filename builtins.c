@@ -64,18 +64,27 @@ Term* Display(Term* args) {
   return 0;
 }
 
-Env* BuiltinEnvironment() {
+Env* BuiltinEnvironment(MemPool* pool) {
   Env* env = 0;
   /* Primitives */
-  env = EnvBind(env, GetSymbol("nil"), 0);
-  env = EnvBind(env, GetSymbol("fun"), NewAtom(T_PRIM_FUN));
-  env = EnvBind(env, GetSymbol("begin"), NewAtom(T_PRIM_BEGIN));
-  env = EnvBind(env, GetSymbol("quote"), NewAtom(T_PRIM_QUOTE));
-  env = EnvBind(env, GetSymbol("head"), BIFun("head", ListHead));
-  env = EnvBind(env, GetSymbol("tail"), BIFun("tail", ListTail));
+  env = EnvBind(pool, env, GetSymbol("nil"), 0);
+  env = EnvBind(pool, env, GetSymbol("fun"), NewAtom(T_PRIM_FUN));
+  env = EnvBind(pool, env, GetSymbol("begin"), NewAtom(T_PRIM_BEGIN));
+  env = EnvBind(pool, env, GetSymbol("quote"), NewAtom(T_PRIM_QUOTE));
+  env = EnvBind(pool, env, GetSymbol("head"), BIFun("head", ListHead));
+  env = EnvBind(pool, env, GetSymbol("tail"), BIFun("tail", ListTail));
   /* I/O */
-  env = EnvBind(env, GetSymbol("display"), BIFun("display", Display));
-  env = EnvBind(env, GetSymbol("newline"), MakeString("\n"));
+  env = EnvBind(pool, env, GetSymbol("display"), BIFun("display", Display));
+  env = EnvBind(pool, env, GetSymbol("newline"), MakeString("\n"));
   return env;
 }
+
+/*
+TODO:
+atom?
+eq?
+cons
+cond
+read input
+*/
 
