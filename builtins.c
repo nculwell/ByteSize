@@ -8,14 +8,14 @@
 
 // TODO: Intern symbols.
 Term* GetSymbol(const char* name) {
-  Term* sym = NewAtom(T_SYMBOL);
+  Term* sym = NewAtom(0, T_SYMBOL);
   sym->value.string.text = name;
   sym->value.string.len = strlen(name);
   return sym;
 }
 
 Term* MakeString(const char* str) {
-  Term* s = NewAtom(T_STRING);
+  Term* s = NewAtom(0, T_STRING);
   s->value.string.text = str;
   s->value.string.len = strlen(str);
   return s;
@@ -23,7 +23,7 @@ Term* MakeString(const char* str) {
 
 // Allocate a built-in function object.
 static Term* BIFun(const char* name, Term* (*funPtr)(struct Term*)) {
-  Term* bif = NewAtom(T_FUN_NATIVE);
+  Term* bif = NewAtom(0, T_FUN_NATIVE);
   bif->value.bif.funName = name;
   bif->value.bif.funPtr = funPtr;
   return bif;
@@ -68,9 +68,9 @@ Env* BuiltinEnvironment(MemPool* pool) {
   Env* env = 0;
   /* Primitives */
   env = EnvBind(pool, env, GetSymbol("nil"), 0);
-  env = EnvBind(pool, env, GetSymbol("fun"), NewAtom(T_PRIM_FUN));
-  env = EnvBind(pool, env, GetSymbol("begin"), NewAtom(T_PRIM_BEGIN));
-  env = EnvBind(pool, env, GetSymbol("quote"), NewAtom(T_PRIM_QUOTE));
+  env = EnvBind(pool, env, GetSymbol("fun"), NewAtom(0, T_PRIM_FUN));
+  env = EnvBind(pool, env, GetSymbol("begin"), NewAtom(0, T_PRIM_BEGIN));
+  env = EnvBind(pool, env, GetSymbol("quote"), NewAtom(0, T_PRIM_QUOTE));
   env = EnvBind(pool, env, GetSymbol("head"), BIFun("head", ListHead));
   env = EnvBind(pool, env, GetSymbol("tail"), BIFun("tail", ListTail));
   /* I/O */

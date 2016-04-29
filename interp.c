@@ -40,7 +40,7 @@ void DieShowingTerm(const char* message, Term* term, ...) {
   exit(1);
 }
 
-void PrintEnv(FILE* f, Env* env, MemPool* pool) {
+void PrintEnv(FILE* f, Env* env) {
   while (env) {
     fwrite(env->nameText, 1, env->nameLen, f);
     fprintf(f, " = ");
@@ -57,13 +57,13 @@ static Term* InterpretTerm(Term* iTerm, Env* env, MemPool* pool) {
     case T_PRIM_NIL:
       ; /* Already handled by the null check above. */
     case T_CONS:
-      return InterpretForm(iTerm, env);
+      return InterpretForm(iTerm, env, pool);
     case T_STRING:
-      return InterpretString(iTerm, env);
+      return InterpretString(iTerm, env, pool);
     case T_NUMBER:
-      return InterpretNumber(iTerm, env);
+      return InterpretNumber(iTerm, env, pool);
     case T_SYMBOL:
-      return InterpretSymbol(iTerm, env);
+      return InterpretSymbol(iTerm, env, pool);
     case T_PRIM_FUN:
     case T_PRIM_QUOTE:
     case T_PRIM_BEGIN:
@@ -81,12 +81,12 @@ static Term* InterpretList(Term* iList, Env* env, MemPool* pool) {
     return 0;
   }
   /* Evaluate list elements in left-to-right order. */
-  Term* eListHead = NewCons(InterpretTerm(HEAD(iList), env), 0);
+  Term* eListHead = NewCons(pool, InterpretTerm(HEAD(iList), env, pool), 0);
   Term* eListLast = eListHead;
   Term* iListNode = TAIL(iList);
   while (iListNode) {
     eListLast->value.list.tail =
-      NewCons(InterpretTerm(HEAD(iListNode), env), 0);
+      NewCons(pool, InterpretTerm(HEAD(iListNode), env, pool), 0);
     eListLast = TAIL(eListLast);
     iListNode = TAIL(iListNode);
   }
@@ -95,13 +95,13 @@ static Term* InterpretList(Term* iList, Env* env, MemPool* pool) {
 
 static Term* InterpretBifCall(Term* eFun, Term* iArgList, Env* env, MemPool* pool) {
   assert(IS_FUN_NATIVE(eFun));
-  Term* eArgList = InterpretList(iArgList, env);
+  Term* eArgList = InterpretList(iArgList, env, pool);
   return eFun->value.bif.funPtr(eArgList);
 }
 
 static Term* InterpretUdfCall(Term* eFun, Term* iArgList, Env* env, MemPool* pool) {
   assert(IS_FUN_USER(eFun));
-  Term* eArgList = InterpretList(iArgList, env);
+  Term* eArgList = InterpretList(iArgList, env, pool);
   /* Bind function arguments. */
   Env* callEnv = eFun->value.udf.funEnv;
   Term* funArgNames = eFun->value.udf.funArgs;
@@ -117,7 +117,7 @@ static Term* InterpretUdfCall(Term* eFun, Term* iArgList, Env* env, MemPool* poo
     Die("Too many arguments to function.");
   }
   /* Invoke the function body. */
-  return InterpretTerm(eFun->value.udf.funBody, callEnv);
+  return InterpretTerm(eFun->value.udf.funBody, callEnv, pool);
 }
 
 static void ValidateFunArgDecls(Term* funArgDecls) {
@@ -174,7 +174,7 @@ static Term* InterpretBegin(Term* iForm, Env* env, MemPool* pool) {
     return 0;
   }
   for (;;) {
-    Term* eFormHead = InterpretTerm(HEAD(iForm), env);
+    Term* eFormHead = InterpretTerm(HEAD(iForm), env, pool);
     if (!TAIL(iForm)) {
       return eFormHead;
     }
@@ -185,20 +185,20 @@ static Term* InterpretBegin(Term* iForm, Env* env, MemPool* pool) {
 static Term* InterpretForm(Term* iTerm, Env* env, MemPool* pool) {
   /* Interpret the head first, then the head determines
      the interpretation of the rest of the form. */
-  Term* eHead = InterpretTerm(HEAD(iTerm), env);
+  Term* eHead = InterpretTerm(HEAD(iTerm), env, pool);
   switch (eHead->type) {
     case T_PRIM_QUOTE:
-      return InterpretQuote(TAIL(iTerm), env);
+      return InterpretQuote(TAIL(iTerm), env, pool);
     case T_PRIM_BEGIN:
-      return InterpretBegin(TAIL(iTerm), env);
+      return InterpretBegin(TAIL(iTerm), env, pool);
     case T_FUN_NATIVE:
-      return InterpretBifCall(eHead, TAIL(iTerm), env);
+      return InterpretBifCall(eHead, TAIL(iTerm), env, pool);
       break;
     case T_FUN_USER:
-      return InterpretUdfCall(eHead, TAIL(iTerm), env);
+      return InterpretUdfCall(eHead, TAIL(iTerm), env, pool);
       break;
     case T_PRIM_FUN:
-      return InterpretFunctionDef(TAIL(iTerm), env);
+      return InterpretFunctionDef(TAIL(iTerm), env, pool);
       break;
     default:
       DieShowingTerm("Invalid form", iTerm);
@@ -235,13 +235,14 @@ static Term* InterpretSymbol(Term* iTerm, Env* env, MemPool* pool) {
 }
 
 Term* Interpret(Term* iProgram) {
-  MemPool* pool = NewMemPool();
+  //MemPool* pool = NewMemPool();
+  MemPool* pool = 0;
   Env* builtinEnv = BuiltinEnvironment(pool);
   printf("--------------------\n");
   printf("Environment:\n");
   PrintEnv(stdout, builtinEnv);
   printf("--------------------\n");
-  Term* iWrappedProgram = NewCons(GetSymbol("begin"), iProgram);
+  Term* iWrappedProgram = NewCons(pool, GetSymbol("begin"), iProgram);
   return InterpretTerm(iWrappedProgram, builtinEnv, pool);
 }
 

@@ -48,18 +48,18 @@ Term* ParseAtom(ParseInfo* parseInfo, Token* token) {
   switch (token->type) {
     case TOK_IDENTIFIER:
       // TODO: Intern symbols.
-      term = NewAtom(T_SYMBOL);
+      term = NewAtom(0, T_SYMBOL);
       term->value.string.text = tokenText;
       term->value.string.len = token->length;
       break;
     case TOK_STRING:
       // TODO: Copy strings to a consolidated space.
-      term = NewAtom(T_STRING);
+      term = NewAtom(0, T_STRING);
       term->value.string.text = tokenText;
       term->value.string.len = token->length;
       break;
     case TOK_NUMBER:
-      term = NewAtom(T_NUMBER);
+      term = NewAtom(0, T_NUMBER);
       term->value.number.n = ParseNumber(tokenText, token->length);
       break;
     default:
@@ -88,7 +88,7 @@ Term* ParseList(ParseInfo* parseInfo) {
     } else {
       newNode = ParseAtom(parseInfo, nextToken);
     }
-    Term* newListPair = NewCons(newNode, 0);
+    Term* newListPair = NewCons(0, newNode, 0);
     if (!listHead) {
       listHead = newListPair;
       listTail = newListPair;

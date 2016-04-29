@@ -1,4 +1,19 @@
 
+#include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <string.h>
+#include <assert.h>
+#include <malloc.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#include <sys/mman.h>
+#endif
+
 /**
 The data type of this term.
 
@@ -132,6 +147,8 @@ typedef struct MemPool MemPool;
 Env* EnvBind(MemPool* pool, Env* env, Term* argNameSymbol, Term* value);
 Term* NewCons(MemPool* pool, Term* head, Term* tail);
 Term* NewAtom(MemPool* pool, DataType type);
+void* Alloc(size_t size); // TODO: Remove these.
+void* Realloc(void* p, size_t size);
 
 #ifdef _WIN32
 typedef DWORD PageSize;

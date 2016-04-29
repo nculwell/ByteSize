@@ -1,7 +1,4 @@
 
-#include <stdio.h>
-#include <stdlib.h>
-
 #include "datatype.h"
 #include "lexer.h"
 #include "parser.h"
@@ -11,8 +8,8 @@ int main(int argc, char** argv) {
     fprintf(stderr, "Usage:\n");
     exit(1);
   }
-  printf("sizeof(Term) = %d\n", sizeof(Term));
-  printf("sizeof(Env) = %d\n", sizeof(Env));
+  printf("sizeof(Term) = %Iu\n", sizeof(Term));
+  printf("sizeof(Env)  = %Iu\n", sizeof(Env));
   const char* filename = argv[1];
   const char* code = LoadFile(filename);
   Token* tokens;

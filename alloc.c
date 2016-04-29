@@ -1,18 +1,4 @@
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <string.h>
-#include <assert.h>
-#include <malloc.h>
-
-#ifdef _WIN32
-#include <windows.h>
-#else
-#include <unistd.h>
-#include <sys/mman.h>
-#endif
-
 #include "datatype.h"
 
 typedef struct MemPoolCell {
@@ -110,7 +96,8 @@ static void* ReserveMemory(size_t size) {
 
 void MemInit() {
   pageSize = GetPageSize();
-  memSize = 0x40000000;
+  // memSize = 0x40000000; // 1 GB
+  memSize = 0x1000000; // 16 MB
   memBase = ReserveMemory(memSize);
 }
 
