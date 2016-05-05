@@ -27,7 +27,7 @@ a primitive" or "is this a number".)
 (NOTE: Currently there's only one kind of number.
        There will be a numeric tower in the future.)
 */
-typedef enum {
+typedef enum __attribute__((__packed__)) {
   /* These are produced by the parser. */
   T_CONS        = 0x0100,
   T_STRING      = 0x0200,
@@ -89,7 +89,7 @@ typedef enum {
 
 // This isn't used yet.
 typedef struct GCInfo {
-  unsigned int bits;
+  unsigned short bits;
 } GCInfo;
 
 struct Env;
@@ -147,7 +147,7 @@ typedef struct MemPool MemPool;
 Env* EnvBind(MemPool* pool, Env* env, Term* argNameSymbol, Term* value);
 Term* NewCons(MemPool* pool, Term* head, Term* tail);
 Term* NewAtom(MemPool* pool, DataType type);
-void* Alloc(size_t size); // TODO: Remove these.
+void* Alloc(size_t size);
 void* Realloc(void* p, size_t size);
 
 #ifdef _WIN32

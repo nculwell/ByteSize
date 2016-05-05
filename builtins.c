@@ -64,6 +64,26 @@ Term* Display(Term* args) {
   return 0;
 }
 
+/* ListMap (aka mapcar) */
+Term* ListMap(Term* args) {
+  assert(IS_CONS(args));
+  term* fun = HEAD(args);
+  term* argsTail1 = TAIL(args);
+  assert(IS_FUN(fun));
+  assert(IS_CONS(argsTail1));
+  term* list = HEAD(argsTail1);
+  assert(IS_LIST(list));
+  assert(IS_NIL(TAIL(argsTail1)));
+  // Shortcut when the list argument is empty.
+  if (IS_NIL(list)) {
+    return 0;
+  }
+  // TODO: Should call a function call function,
+  // but first I need to write one.
+  Term* mapHead = 0;
+  Term* mapLast = 0;
+}
+
 Env* BuiltinEnvironment(MemPool* pool) {
   Env* env = 0;
   /* Primitives */

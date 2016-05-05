@@ -48,12 +48,13 @@ static MacroExpansion MacroExpandTerm(Term* iTerm, Env* env) {
 }
 
 static MacroExpansion MacroExpandForm(Term* iTerm, Env* env) {
+  assert(IS_CONS(iTerm));
+  Term* eFormArgs = MacroExpandList(TAIL(iTerm), env);
   if (HEAD(iTerm)->type == T_SYMBOL) {
     Term* eSymValue =
       EnvLookup(env, iTerm->value.string.text, iTerm->value.string.len);
     if (IS_MACRO(eSymValue)) {
       // We have a macro to expand.
-
     }
   } else {
   }

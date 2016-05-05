@@ -1,12 +1,11 @@
 
 #include <stdio.h>
 
+#define ON_OVERFLOW_GOTO(LABEL) asm goto ("jo %l[" #LABEL "]"::::LABEL)
+
 void mulWithOverflow(int a, int b) {
   int c = a * b;
-  asm goto (
-      "jo %l[overflow]"
-      :::: overflow
-      );
+  ON_OVERFLOW_GOTO(overflow);
   printf("%d * %d = %d\n", a, b, c);
   return;
 overflow:
