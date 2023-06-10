@@ -1,2 +1,0 @@
-break Die
-break DieShowingTerm
